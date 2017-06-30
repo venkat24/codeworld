@@ -106,6 +106,103 @@ function init() {
     }
 }
 
+var encoder;
+
+var cStream;
+var recorder;
+var chunks = [];
+
+function captureStart() {
+    var iframe = document.querySelector('#runner');
+    var innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+    var canvas = innerDoc.querySelector('#screen');
+    var context = canvas.getContext('2d');
+
+    var cStream = undefined;
+    var chunks = [];
+
+    var cStream = canvas.captureStream(30);
+
+    recorder = new MediaRecorder(cStream);
+    recorder.start();
+
+    document.querySelector('#recordIcon').style.display = "block";
+    document.querySelector('#startRecButton').style.display = "none";
+    document.querySelector('#stopRecButton').style.display = "block";
+
+    recorder.ondataavailable = saveChunks;
+    recorder.onstop = exportStream;
+};
+
+function saveChunks(e) {
+    chunks.push(e.data);
+}
+
+function stopRecording() {
+    recorder.stop();
+
+    document.querySelector('#recordIcon').style.display = "none";
+    document.querySelector('#startRecButton').style.display = "block";
+    document.querySelector('#stopRecButton').style.display = "none";
+
+    delete recorder;
+}
+
+function exportStream(e) {
+    var blob = new Blob(chunks);
+    var vidURL = URL.createObjectURL(blob);
+    var vid = document.createElement('video');
+    console.log(blob);
+    vid.controls = true;
+    vid.src = vidURL;
+    vid.onend = function() {
+        URL.revokeObjectURL(vidURL);
+    }
+    download(blob, 'yourprojectexport.webm', 'video/webm');
+}
+
+function whammyStart() {
+
+    var iframe = document.querySelector('#runner');
+    var innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+    var canvas = innerDoc.querySelector('#screen');
+    var context = canvas.getContext('2d');
+
+    var frameRate = 30;
+
+    encoder = new Whammy.Video(frameRate);
+
+    var counter = 0;
+    var i = setInterval(function(){
+        encoder.add(context);
+        counter++;
+        if(counter === 50) {
+            clearInterval(i);
+            getOutput();
+        }
+    }, Math.floor((1/frameRate)*1000));
+}
+
+function getOutput () {
+    console.log("Enters output");
+    console.log(encoder);
+
+    var gifencoder = new GIFEncoder();
+    //gifencoder.setRepeat(50);
+    //gifencoder.setDelay(50); //go to next frame every n milliseconds
+    //gifencoder.start();
+    //gifencoder.setSize(500, 500);
+
+    //for(var frame of encoder.frames) {
+        //gifencoder.addFrame(frame.image, true);
+    //}
+
+    //gifencoder.finish();
+    //gifencoder.download("new.gif");
+}
+
 function setMode(force) {
     if (window.buildMode == 'haskell') {
         if (force || window.codeworldEditor.getMode().name == 'codeworld') {
